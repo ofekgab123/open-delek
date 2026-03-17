@@ -6,9 +6,9 @@
 
 ## הגדרה
 
-הוסף `DATABASE_URL` (אותו ערך כמו ב-Auto-Dalkan):
-- **מקומי:** קובץ `.env`
-- **Vercel:** Environment Variables בפרויקט
+הוסף ל-`.env` (ובהתאם ב-Vercel):
+- `DATABASE_URL` – אותו ערך כמו ב-Auto-Dalkan
+- `OPEN_DALKAN_TOKEN` – אותו token כמו ב-Auto-Dalkan (לייצר: `openssl rand -hex 32`)
 
 ## API
 

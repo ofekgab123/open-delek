@@ -1,29 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addRequest } from "@/lib/requests";
+import { decryptPayload } from "@/lib/open-delek-crypto";
 
 /**
  * API לקבלת אישור תדלוק מ-Auto-Dalkan
- * נקרא כאשר: המתדלק עבר את כל השלבים, הטלפון ליד הרכב, ושניהם ליד תחנת דלק מאותה חברה
+ * הנתונים מגיעים מוצפנים (AES-256-GCM). דורש Authorization: Bearer <token>
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const { plate, succ } = body;
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+    const expectedToken = process.env.OPEN_DALKAN_TOKEN;
 
-    // בדיקה שהנתונים נשלחו
+    if (!expectedToken || !token || token !== expectedToken) {
+      return NextResponse.json(
+        { error: "unauthorized", message: "חסר או שגוי token" },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
+    const { payload: encrypted } = body;
+
+    if (!encrypted || typeof encrypted !== "string") {
+      await addRequest({ plate: "", succ: false, status: "error", errorMessage: "חסר payload מוצפן" });
+      return NextResponse.json(
+        { error: "invalidPayload", message: "חסר payload מוצפן" },
+        { status: 400 }
+      );
+    }
+
+    const decrypted = decryptPayload(encrypted, expectedToken);
+    if (!decrypted) {
+      await addRequest({ plate: "", succ: false, status: "error", errorMessage: "פענוח נכשל" });
+      return NextResponse.json(
+        { error: "decryptFailed", message: "לא ניתן לפענח את הנתונים" },
+        { status: 400 }
+      );
+    }
+
+    const { plate, succ } = decrypted;
+
     if (!plate || typeof plate !== "string") {
       const err = { error: "missingPlate", message: "חסר מספר רכב" };
       await addRequest({ plate: String(plate ?? ""), succ: false, status: "error", errorMessage: err.message });
       return NextResponse.json(err, { status: 400 });
     }
 
-    if (succ === undefined || succ === null) {
-      const err = { error: "missingSucc", message: "חסר דגל succ" };
-      await addRequest({ plate: plate.trim(), succ: false, status: "error", errorMessage: err.message });
-      return NextResponse.json(err, { status: 400 });
-    }
-
-    // בדיקה ש-succ אכן true (אישור הצלחה)
     if (succ !== true) {
       const err = { error: "notSuccess", message: "התדלוק לא אושר - succ חייב להיות true" };
       await addRequest({ plate: plate.trim(), succ: false, status: "error", errorMessage: err.message });
