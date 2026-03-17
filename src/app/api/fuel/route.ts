@@ -12,7 +12,14 @@ export async function POST(req: NextRequest) {
     const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
     const expectedToken = process.env.OPEN_DALKAN_TOKEN;
 
+    console.log("[Open-Dalkan] התקבל:", {
+      hasAuthHeader: !!authHeader,
+      hasToken: !!token,
+      tokenLength: token?.length ?? 0,
+    });
+
     if (!expectedToken || !token || token !== expectedToken) {
+      console.log("[Open-Dalkan] דחייה: token חסר או שגוי");
       return NextResponse.json(
         { error: "unauthorized", message: "חסר או שגוי token" },
         { status: 401 }
@@ -21,8 +28,10 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { payload: encrypted } = body;
+    console.log("[Open-Dalkan] payload:", { encryptedLength: encrypted?.length ?? 0 });
 
     if (!encrypted || typeof encrypted !== "string") {
+      console.log("[Open-Dalkan] דחייה: חסר payload מוצפן");
       await addRequest({ plate: "", succ: false, status: "error", errorMessage: "חסר payload מוצפן" });
       return NextResponse.json(
         { error: "invalidPayload", message: "חסר payload מוצפן" },
@@ -32,6 +41,7 @@ export async function POST(req: NextRequest) {
 
     const decrypted = decryptPayload(encrypted, expectedToken);
     if (!decrypted) {
+      console.log("[Open-Dalkan] דחייה: פענוח נכשל");
       await addRequest({ plate: "", succ: false, status: "error", errorMessage: "פענוח נכשל" });
       return NextResponse.json(
         { error: "decryptFailed", message: "לא ניתן לפענח את הנתונים" },
@@ -55,18 +65,18 @@ export async function POST(req: NextRequest) {
 
     await addRequest({ plate: plate.trim(), succ: true, status: "success" });
 
-    // הדפסה לקונסול
-    console.log("=== Open-Dalkan: תדלוק אושר ===");
-    console.log("מספר רכב:", plate.trim());
-    console.log("סטטוס:", "succ=true");
-    console.log("זמן:", new Date().toISOString());
-    console.log("==============================");
-
-    return NextResponse.json({
+    const response = {
       success: true,
       message: "הנתונים התקבלו בהצלחה",
       received: { plate: plate.trim(), succ: true, receivedAt: new Date().toISOString() },
+    };
+    console.log("[Open-Dalkan] מפענח ואישר:", {
+      plate: plate.trim(),
+      succ: true,
+      receivedAt: response.received.receivedAt,
     });
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Open-Dalkan API error:", error);
     try {
