@@ -46,3 +46,4 @@ OPEN_DALKAN_URL=http://localhost:3002
 
 הרץ את שני הפרויקטים – Auto-Dalkan על 3000, Open-Dalkan על 3002.
 # open-delek
+# open-delek
