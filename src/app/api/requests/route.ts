@@ -4,6 +4,6 @@ import { getRequests } from "@/lib/requests";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const requests = getRequests();
+  const requests = await getRequests();
   return NextResponse.json(requests);
 }

@@ -1,0 +1,19 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model OpenDelekRequest {
+  id           String   @id @default(cuid())
+  plate        String
+  succ         Boolean
+  status       String   // "success" | "error"
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  @@map("open_delek")
+}

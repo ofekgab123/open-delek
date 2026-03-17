@@ -2,6 +2,14 @@
 
 שירות לקבלת אישור תדלוק מ-Auto-Dalkan ופתיחת הדלק (אוטומציה בהמשך).
 
+משתמש **באותו מסד נתונים** כמו Auto-Dalkan – טבלת `open_delek` שומרת את כל הבקשות.
+
+## הגדרה
+
+הוסף `DATABASE_URL` (אותו ערך כמו ב-Auto-Dalkan):
+- **מקומי:** קובץ `.env`
+- **Vercel:** Environment Variables בפרויקט
+
 ## API
 
 ### POST /api/fuel

@@ -1,5 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import { prisma } from "./db";
 
 export type RequestStatus = "success" | "error";
 
@@ -12,44 +11,38 @@ export type FuelRequest = {
   receivedAt: string;
 };
 
-const MAX_REQUESTS = 500;
-
-function getFilePath(): string {
-  const dir = join(process.cwd(), "data");
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true });
-  }
-  return join(dir, "requests.json");
-}
-
-function loadRequests(): FuelRequest[] {
-  try {
-    const data = readFileSync(getFilePath(), "utf-8");
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-function saveRequests(requests: FuelRequest[]): void {
-  writeFileSync(getFilePath(), JSON.stringify(requests, null, 2), "utf-8");
-}
-
-export function addRequest(req: Omit<FuelRequest, "id" | "receivedAt">): FuelRequest {
-  const requests = loadRequests();
-  const record: FuelRequest = {
-    ...req,
-    id: crypto.randomUUID(),
-    receivedAt: new Date().toISOString(),
+export async function addRequest(
+  req: Omit<FuelRequest, "id" | "receivedAt">
+): Promise<FuelRequest> {
+  const record = await prisma.openDelekRequest.create({
+    data: {
+      plate: req.plate,
+      succ: req.succ,
+      status: req.status,
+      errorMessage: req.errorMessage ?? null,
+    },
+  });
+  return {
+    id: record.id,
+    plate: record.plate,
+    succ: record.succ,
+    status: record.status as RequestStatus,
+    errorMessage: record.errorMessage ?? undefined,
+    receivedAt: record.createdAt.toISOString(),
   };
-  requests.unshift(record);
-  if (requests.length > MAX_REQUESTS) {
-    requests.pop();
-  }
-  saveRequests(requests);
-  return record;
 }
 
-export function getRequests(): FuelRequest[] {
-  return loadRequests();
+export async function getRequests(): Promise<FuelRequest[]> {
+  const records = await prisma.openDelekRequest.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 500,
+  });
+  return records.map((r) => ({
+    id: r.id,
+    plate: r.plate,
+    succ: r.succ,
+    status: r.status as RequestStatus,
+    errorMessage: r.errorMessage ?? undefined,
+    receivedAt: r.createdAt.toISOString(),
+  }));
 }

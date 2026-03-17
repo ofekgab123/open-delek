@@ -13,24 +13,24 @@ export async function POST(req: NextRequest) {
     // בדיקה שהנתונים נשלחו
     if (!plate || typeof plate !== "string") {
       const err = { error: "missingPlate", message: "חסר מספר רכב" };
-      addRequest({ plate: String(plate ?? ""), succ: false, status: "error", errorMessage: err.message });
+      await addRequest({ plate: String(plate ?? ""), succ: false, status: "error", errorMessage: err.message });
       return NextResponse.json(err, { status: 400 });
     }
 
     if (succ === undefined || succ === null) {
       const err = { error: "missingSucc", message: "חסר דגל succ" };
-      addRequest({ plate: plate.trim(), succ: false, status: "error", errorMessage: err.message });
+      await addRequest({ plate: plate.trim(), succ: false, status: "error", errorMessage: err.message });
       return NextResponse.json(err, { status: 400 });
     }
 
     // בדיקה ש-succ אכן true (אישור הצלחה)
     if (succ !== true) {
       const err = { error: "notSuccess", message: "התדלוק לא אושר - succ חייב להיות true" };
-      addRequest({ plate: plate.trim(), succ: false, status: "error", errorMessage: err.message });
+      await addRequest({ plate: plate.trim(), succ: false, status: "error", errorMessage: err.message });
       return NextResponse.json(err, { status: 400 });
     }
 
-    addRequest({ plate: plate.trim(), succ: true, status: "success" });
+    await addRequest({ plate: plate.trim(), succ: true, status: "success" });
 
     // הדפסה לקונסול
     console.log("=== Open-Dalkan: תדלוק אושר ===");
@@ -46,7 +46,9 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Open-Dalkan API error:", error);
-    addRequest({ plate: "", succ: false, status: "error", errorMessage: "שגיאת שרת" });
+    try {
+      await addRequest({ plate: "", succ: false, status: "error", errorMessage: "שגיאת שרת" });
+    } catch {}
     return NextResponse.json(
       { error: "serverError", message: "שגיאה בשרת" },
       { status: 500 }
